@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: currentLocation.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: currentLocation.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>
+import React from "react";
+import apiKeys from "./apiKeys";
+import Clock from "react-live-clock";
+import Forcast from "./forcast";
+import loader from "./images/WeatherIcons.gif";
+import ReactAnimatedWeather from "react-animated-weather";
+const dateBuilder = (d) => {
+  let months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  let days = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+
+  let day = days[d.getDay()];
+  let date = d.getDate();
+  let month = months[d.getMonth()];
+  let year = d.getFullYear();
+
+  return `${day}, ${date} ${month} ${year}`;
+};
+const defaults = {
+  color: "white",
+  size: 112,
+  animate: true,
+};
+/**
+ * Component to display current weather based on location.
+ * @module Weather
+ * @component
+ * @returns {React.Element} The rendered React element.
+ */
+class Weather extends React.Component {
+  state = {
+    lat: undefined,
+    lon: undefined,
+    errorMessage: undefined,
+    temperatureC: undefined,
+    temperatureF: undefined,
+    city: undefined,
+    country: undefined,
+    humidity: undefined,
+    description: undefined,
+    icon: "CLEAR_DAY",
+    sunrise: undefined,
+    sunset: undefined,
+    errorMsg: undefined,
+  };
+
+  componentDidMount() {
+    if (navigator.geolocation) {
+      this.getPosition()
+        //If user allow location service then will fetch data &amp; send it to get-weather function.
+        .then((position) => {
+          this.getWeather(position.coords.latitude, position.coords.longitude);
+        })
+        .catch((err) => {
+          //If user denied location service then standard location weather will le shown on basis of latitude &amp; latitude.
+          this.getWeather(28.67, 77.22);
+          alert(
+            "You have disabled location service. Allow 'This APP' to access your location. Your current location will be used for calculating Real time weather."
+          );
+        });
+    } else {
+      alert("Geolocation not available");
+    }
+
+    this.timerID = setInterval(
+      () => this.getWeather(this.state.lat, this.state.lon),
+      600000
+    );
+  }
+
+  componentWillUnmount() {
+    clearInterval(this.timerID);
+  }
+
+  // tick = () => {
+  //   this.getPosition()
+  //   .then((position) => {
+  //     this.getWeather(position.coords.latitude, position.coords.longitude)
+  //   })
+  //   .catch((err) => {
+  //     this.setState({ errorMessage: err.message });
+  //   });
+  // }
+
+  getPosition = (options) => {
+    return new Promise(function (resolve, reject) {
+      navigator.geolocation.getCurrentPosition(resolve, reject, options);
+    });
+  };
+  getWeather = async (lat, lon) => {
+    const api_call = await fetch(
+      `${apiKeys.base}weather?lat=${lat}&amp;lon=${lon}&amp;units=metric&amp;appid=a799f063cbcfcad50039346b4dbeaae2`
+    );
+    console.log(api_call);
+    const data = await api_call.json();
+    this.setState({
+      lat: lat,
+      lon: lon,
+      city: data.name,
+      temperatureC: Math.round(data.main.temp),
+      temperatureF: Math.round(data.main.temp * 1.8 + 32),
+      humidity: data.main.humidity,
+      main: data.weather[0].main,
+      country: data.sys.country,
+      // sunrise: this.getTimeFromUnixTimeStamp(data.sys.sunrise),
+
+      // sunset: this.getTimeFromUnixTimeStamp(data.sys.sunset),
+    });
+    switch (this.state.main) {
+      case "Haze":
+        this.setState({ icon: "CLEAR_DAY" });
+        break;
+      case "Clouds":
+        this.setState({ icon: "CLOUDY" });
+        break;
+      case "Rain":
+        this.setState({ icon: "RAIN" });
+        break;
+      case "Snow":
+        this.setState({ icon: "SNOW" });
+        break;
+      case "Dust":
+        this.setState({ icon: "WIND" });
+        break;
+      case "Drizzle":
+        this.setState({ icon: "SLEET" });
+        break;
+      case "Fog":
+        this.setState({ icon: "FOG" });
+        break;
+      case "Smoke":
+        this.setState({ icon: "FOG" });
+        break;
+      case "Tornado":
+        this.setState({ icon: "WIND" });
+        break;
+      default:
+        this.setState({ icon: "CLEAR_DAY" });
+    }
+  };
+
+  render() {
+    if (this.state.temperatureC) {
+      return (
+        &lt;React.Fragment>
+          &lt;div className="city">
+            &lt;div className="title">
+              &lt;h2>{this.state.city}&lt;/h2>
+              &lt;h3>{this.state.country}&lt;/h3>
+            &lt;/div>
+            &lt;div className="mb-icon">
+              {" "}
+              &lt;ReactAnimatedWeather
+                icon={this.state.icon}
+                color={defaults.color}
+                size={defaults.size}
+                animate={defaults.animate}
+              />
+              &lt;p>{this.state.main}&lt;/p>
+            &lt;/div>
+            &lt;div className="date-time">
+              &lt;div className="dmy">
+                &lt;div id="txt">&lt;/div>
+                &lt;div className="current-time">
+                  &lt;Clock format="HH:mm:ss" interval={1000} ticking={true} />
+                &lt;/div>
+                &lt;div className="current-date">{dateBuilder(new Date())}&lt;/div>
+              &lt;/div>
+              &lt;div className="temperature">
+                &lt;p>
+                  {this.state.temperatureC}°&lt;span>C&lt;/span>
+                &lt;/p>
+                {/* &lt;span className="slash">/&lt;/span>
+                {this.state.temperatureF} &amp;deg;F */}
+              &lt;/div>
+            &lt;/div>
+          &lt;/div>
+          &lt;Forcast icon={this.state.icon} weather={this.state.main} />
+        &lt;/React.Fragment>
+      );
+    } else {
+      return (
+        &lt;React.Fragment>
+          &lt;img src={loader} style={{ width: "50%", WebkitUserDrag: "none" }} />
+          &lt;h3 style={{ color: "white", fontSize: "22px", fontWeight: "600" }}>
+            Detecting your location
+          &lt;/h3>
+          &lt;h3 style={{ color: "white", marginTop: "10px" }}>
+            Your current location wil be displayed on the App &lt;br>&lt;/br> &amp; used
+            for calculating Real time weather.
+          &lt;/h3>
+        &lt;/React.Fragment>
+      );
+    }
+  }
+}
+
+export default Weather;
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-App.html">App</a></li><li><a href="module-Forecast.html">Forecast</a></li><li><a href="module-Weather.html">Weather</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Fri Nov 24 2023 22:55:37 GMT+0530 (India Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
